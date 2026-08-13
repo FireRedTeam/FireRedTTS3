@@ -45,8 +45,7 @@
 
 
 ## News
-- [2026.08.05] We release **FireRedTTS3-Base**
-- [2026.08.13] We release the **FireRedTTS3-Instruct** model & code
+- [2026.08.13] We release the **FireRedTTS3**
 
 
 ## Roadmap
