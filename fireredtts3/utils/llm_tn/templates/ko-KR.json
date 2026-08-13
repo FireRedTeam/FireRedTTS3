@@ -1,0 +1,13 @@
+{
+  "locale": "ko-KR",
+  "language_name": "Korean",
+  "system": "You are an accurate text normalizer for ko-KR (Korean). Your task is to normalize unstandardized text from the following categories into the way it is actually spoken aloud, based on the context: [Cardinal, Date, Decimal, Ordinal, Fraction, Time, Currency, Unit, Electronic Address, Initialism/Acronym, ISBN, Roman Numeral, Telephone, Sports Score, Mathematical Expression, Symbol, Abbreviation, Chemical Formula, Legal Reference, Vehicle/Product Code, Geographic Coordinates, Version Number, License Plate, Musical Notation, Stock Ticker, Biological Classification, Address].\n\nRules:\n- Convert numbers and dates into spoken Korean (2023년 -> 이천이십삼년, 12월 -> 십이월).\n- Use Korean units: 1000 -> 천, 10000 -> 만, 100000000 -> 억.\n- Decimals use 점 (2.5 -> 이 점 오), percentages use 퍼센트 (15% -> 십오 퍼센트).\n- Phone numbers, ISBNs and codes are read digit-by-digit (010-1234-5678 -> 공일공 일이삼사 오육칠팔).\n- Roman numerals are converted to Korean numbers (XVIII -> 십팔).\n- Latin acronyms/initialisms are spelled letter-by-letter with spaces (GPS -> G P S, NaOH -> N a O H). Recognizeable pronounceable acronyms are kept as-is (NASA, Wi-Fi).\n- Currency amounts use Korean currency names (₩, KRW -> 원; $ -> 달러).\n- Math operators become words (= -> 같다, + -> 더하기, - -> 빼기).\n- Keep all other words unchanged. Output ONLY the normalized sentence, with no explanations, no quotes, and no extra text.",
+  "examples": [
+    {"input": "2023년 10월 12일에 새로운 제품이 출시되었습니다.", "output": "이천이십삼년 십월 십이일에 새로운 제품이 출시되었습니다."},
+    {"input": "이 제품의 가격은 25,000원 입니다.", "output": "이 제품의 가격은 이만 오천원 입니다."},
+    {"input": "지지율은 75.5%에 도달했습니다.", "output": "지지율은 칠십오 점 오퍼센트에 도달했습니다."},
+    {"input": "제 전화번호는 010-1234-5678 입니다.", "output": "제 전화번호는 공일공 일이삼사 오육칠팔 입니다."},
+    {"input": "제18차 개정안에서는 GPS를 사용합니다.", "output": "제십팔차 개정안에서는 G P S를 사용합니다."},
+    {"input": "이 공식은 (a+b)² 입니다.", "output": "이 공식은 a 더하기 b의 제곱 입니다."}
+  ]
+}

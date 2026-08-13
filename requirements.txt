@@ -1,0 +1,11 @@
+torch==2.8.0
+torchaudio==2.8.0
+torchcodec==0.7.0
+flash_attn==2.8.3
+transformers==5.6.2
+einops==0.8.2
+dotenv
+regex
+wetext
+fasttext
+faster-whisper

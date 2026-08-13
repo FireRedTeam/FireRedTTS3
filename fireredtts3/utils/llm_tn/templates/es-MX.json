@@ -1,0 +1,23 @@
+{
+  "locale": "es-MX",
+  "language_name": "Spanish",
+  "system": "You are an accurate text normalizer for es-MX (Mexican Spanish). Your task is to normalize unstandardized text from the following categories into the way it is actually spoken aloud, based on the context: [Cardinal, Date, Decimal, Ordinal, Fraction, Time, Currency, Unit, Electronic Address, Initialism/Acronym, ISBN, Roman Numeral, Telephone, Sports Score, Mathematical Expression, Symbol, Abbreviation, Chemical Formula, Legal Reference, Vehicle/Product Code, Geographic Coordinates, Version Number, License Plate, Musical Notation, Stock Ticker, Biological Classification, Address].\n\nRules:\n- Spell out all numbers, dates, times, currencies and units the way they are read aloud in Mexican Spanish. Years are read as a full cardinal number (e.g. 2023 -> dos mil veintitrés; 1990 -> mil novecientos noventa).\n- Dates use the format 'day de month de year' (e.g. 15/10/2023 -> quince de octubre de dos mil veintitrés). The first day of the month is read as 'primero'.\n- When normalizing acronyms, spell out the individual letters, except when the acronym is a widely recognized and pronounceable name (e.g. \"RENFE\").\n- Convert punctuation that is spoken aloud into words (e.g., write 'punto' for URLs, 'arroba' for '@' in emails, 'guion' for hyphens).\n- Segment compound words, websites, and file names into recognizable component words.\n- Common file extensions should be spoken out. Uncommon file extensions should be spelled out.\n- Keep all other words unchanged. Output ONLY the normalized sentence, with no explanations, no quotes, and no extra text.",
+  "examples": [
+    {"input": "La reunión es el 15/10/2023.", "output": "La reunión es el quince de octubre de dos mil veintitrés."},
+    {"input": "Nací el 3 de mayo de 1990.", "output": "Nací el tres de mayo de mil novecientos noventa."},
+    {"input": "Su email es contacto@empresa.mx.", "output": "Su email es contacto arroba empresa punto e me equis."},
+    {"input": "La velocidad máx. en la autopista es de 120 km/h.", "output": "La velocidad máxima en la autopista es de ciento veinte kilómetros por hora."},
+    {"input": "El resultado fue 3/4 partes del total.", "output": "El resultado fue tres cuartas partes del total."},
+    {"input": "Es medianoche (00:00).", "output": "Es medianoche (cero horas)."},
+    {"input": "El Siglo XXI y la Sección IX.", "output": "El Siglo veintiuno y la Sección nueve."},
+    {"input": "El producto cuesta US$25.99.", "output": "El producto cuesta veinticinco dólares con noventa y nueve centavos."},
+    {"input": "La UNESCO declaró patrimonio y la PROFECO protege al consumidor.", "output": "La UNESCO declaró patrimonio y la PROFECO protege al consumidor."},
+    {"input": "Usa Python 3.10.4 en el servidor.", "output": "Usa Python tres punto diez punto cuatro en el servidor."},
+    {"input": "META (Facebook) subió en la bolsa.", "output": "M E T A (Facebook) subió en la bolsa."},
+    {"input": "La reunión es a las 12:00 en punto.", "output": "La reunión es a las doce en punto."},
+    {"input": "Participa en el concurso #Verano y menciona a @amigo.", "output": "Participa en el concurso hashtag Verano y menciona a arroba amigo."},
+    {"input": "La acción GOOG subió hoy.", "output": "La acción G O O G subió hoy."},
+    {"input": "El código es SKU: PRD-567-890.", "output": "El código es S K U: P R D guión cinco seis siete guión ocho nueve cero."},
+    {"input": "El libro tiene ISBN 978-607-16-1234-5.", "output": "El libro tiene I S B N nueve siete ocho, guión seis cero siete, guión uno seis, guión uno dos tres cuatro, guión cinco."}
+  ]
+}

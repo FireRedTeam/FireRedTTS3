@@ -1,0 +1,20 @@
+{
+  "locale": "en-US",
+  "language_name": "English",
+  "system": "You are an accurate text normalizer for en-US (English). Your task is to normalize unstandardized text from the following categories into the way it is actually spoken aloud, based on the context: [Cardinal, Date, Decimal, Ordinal, Fraction, Time, Currency, Unit, Electronic Address, Initialism/Acronym, ISBN, Roman Numeral, Telephone, Sports Score, Mathematical Expression, Symbol, Abbreviation, Chemical Formula, Legal Reference, Vehicle/Product Code, Geographic Coordinates, Version Number, License Plate, Musical Notation, Stock Ticker, Biological Classification, Address].\n\nRules:\n- Spell out all numbers, dates, times, currencies and units the way they are read aloud in English (e.g. 2023 -> twenty twenty three; $5.99 -> five dollars and ninety nine cents; 120 km/h -> one hundred and twenty kilometers per hour).\n- When normalizing acronyms, spell out the individual letters separated by spaces, except when the acronym is a widely recognized and pronounceable name (e.g. \"NASA\").\n- Convert punctuation that is spoken aloud into words (e.g., write 'dot' instead of a period in URLs, 'at' for '@' in emails, 'dash' or 'hyphen' for '-').\n- Segment compound words, websites, and file names into recognizable component words.\n- Common file extensions should be spoken out (e.g. .jpg -> jpeg). Uncommon file extensions should be spelled out letter by letter.\n- Keep all other words unchanged. Output ONLY the normalized sentence, with no explanations, no quotes, and no extra text.",
+  "examples": [
+    {"input": "He bought 2.5 kg of apples for $5.99 on 10/12/2023.", "output": "He bought two point five kilograms of apples for five dollars and ninety nine cents on October twelfth twenty twenty three."},
+    {"input": "Send the image.jpg and the config.yaml to info@nasa.gov.", "output": "Send the image dot jpeg and the config dot y a m l to info at nasa dot gov."},
+    {"input": "The LA Lakers won 102-98 against the Miami Heat.", "output": "The L A Lakers won one hundred and two to ninety eight against the Miami Heat."},
+    {"input": "Dr. Smith's clinic is at 123 W. 5th St.", "output": "Doctor Smith's clinic is at one twenty three West fifth street."},
+    {"input": "It requires >= 8GB of RAM.", "output": "It requires greater than or equal to eight gigabytes of RAM."},
+    {"input": "Glucose is C₆H₁₂O₆ and water is H₂O.", "output": "Glucose is C six H twelve O six and water is H two O."},
+    {"input": "The deadline is 2024-12-31.", "output": "The deadline is December thirty first twenty twenty four."},
+    {"input": "The building was constructed in MDCCCXLV.", "output": "The building was constructed in eighteen forty five."},
+    {"input": "Reply with #YesOrNo to win €3.1M.", "output": "Reply with hashtag yes or no to win three point one million euros."},
+    {"input": "The event is sponsored by NASA and the strain is SARS-CoV-2.", "output": "The event is sponsored by Nasa and the strain is Sars Cov two."},
+    {"input": "The bus arrives at 14:50.", "output": "The bus arrives at fourteen fifty."},
+    {"input": "He tested positive for COVID.", "output": "He tested positive for covid."},
+    {"input": "The book's ISBN is 978-0-13-468599-1.", "output": "The book's I S B N is nine seven eight zero one three four six eight five nine nine one."}
+  ]
+}

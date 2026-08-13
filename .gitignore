@@ -1,0 +1,17 @@
+# Vscode
+.vscode
+.claude
+pyrightconfig.json
+
+# Python
+__pycache__/
+
+# Environment variables (keep .env.example tracked)
+.env
+
+# Ckpt
+pretrained_models/
+
+# Eval
+data
+data/
