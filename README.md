@@ -28,7 +28,7 @@
 
 <br>
 
-**FireRedTTS3** is a unified speech generation and editing system built on **semantically enriched continuous audio representations**. It comes in two variants:
+**FireRedTTS3** is a unified speech generation and editing system built on **semantically enriched continuous speech representations**. It comes in two variants:
 
 - **FireRedTTS3-Base** — zero-shot voice cloning across **24 languages** and **21 Chinese dialects**
 - **FireRedTTS3-Instruct** — natural-language **voice design** and **speech editing** (semantic + acoustic) in one unified model
@@ -511,7 +511,7 @@ Since Gemini-2.5-pro-preview is inaccessible, Gemini-2.5-pro is used to score al
 
 ```bib
 @article{fireredtts3,
-  title   = {FireRedTTS3: Unified Speech Generation and Editing with Semantically Enriched Audio Representations},
+  title   = {FireRedTTS3: Unified Speech Generation and Editing with Semantically Enriched Speech Representations},
   author  = {FireRed Team},
   journal = {arXiv preprint},
   year    = {2026},
