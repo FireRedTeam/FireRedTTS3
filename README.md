@@ -20,27 +20,23 @@
 
 ## Overview
 
-
+<!-- 
 <div align="center">
   <img src="assets/fireredtts3_arch.png" alt="FireRedTTS3 Architecture" width="95%">
   <br>
-</div>
-
-<br>
-
-**FireRedTTS3** is a unified speech generation and editing system built on **semantically enriched continuous speech representations**. It comes in two variants:
-
-- **FireRedTTS3-Base** — zero-shot voice cloning across **24 languages** and **21 Chinese dialects**
-- **FireRedTTS3-Instruct** — natural-language **voice design** and **speech editing** (semantic + acoustic) in one unified model
-
-
-## Video Demo
+</div> 
+-->
 
 <div align="center">
 
 <https://github.com/user-attachments/assets/1ff882ce-828d-48d5-bd2a-4ad12ee912ac>
 
 </div>
+
+**FireRedTTS3** is a unified speech generation and editing system built on **semantically enriched continuous speech representations**. It comes in two variants:
+
+- **FireRedTTS3-Base** — zero-shot voice cloning across **24 languages** and **21 Chinese dialects**
+- **FireRedTTS3-Instruct** — natural-language **voice design** and **speech editing** (semantic + acoustic) in one unified model
 
 
 ## Highlights ✨ 
