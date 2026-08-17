@@ -12,8 +12,8 @@
     <p>
     </p>
     <a href="#"><img src="https://img.shields.io/badge/Paper-ArXiv-red" alt="technical report"></a>
-    <a href="#"><img src="https://img.shields.io/badge/Demo-Page-lightgrey" alt="version"></a>
-    <a href="#"><img src="https://img.shields.io/badge/Hugging%20Face-Model%20Page-yellow" alt="HF-model"></a>
+    <a href="https://fireredteam.github.io/demos/firered_tts_3/"><img src="https://img.shields.io/badge/Demo-Page-lightgrey" alt="version"></a>
+    <a href="https://huggingface.co/FireRedTeam/FireRedTTS3"><img src="https://img.shields.io/badge/Hugging%20Face-Model%20Page-yellow" alt="HF-model"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="Apache-2.0"></a>
 </div>
 
@@ -32,6 +32,13 @@
 
 - **FireRedTTS3-Base** — zero-shot voice cloning across **24 languages** and **21 Chinese dialects**
 - **FireRedTTS3-Instruct** — natural-language **voice design** and **speech editing** (semantic + acoustic) in one unified model
+
+
+## Demo Examples
+
+<div align="center">
+<https://github.com/user-attachments/assets/1ff882ce-828d-48d5-bd2a-4ad12ee912ac>
+</div>
 
 
 ## Highlights ✨ 
