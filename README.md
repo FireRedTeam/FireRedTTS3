@@ -34,10 +34,12 @@
 - **FireRedTTS3-Instruct** — natural-language **voice design** and **speech editing** (semantic + acoustic) in one unified model
 
 
-## Demo Examples
+## Video Demo
 
 <div align="center">
+
 <https://github.com/user-attachments/assets/1ff882ce-828d-48d5-bd2a-4ad12ee912ac>
+
 </div>
 
 
