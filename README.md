@@ -11,7 +11,7 @@
     </p>
     <p>
     </p>
-    <a href="#"><img src="https://img.shields.io/badge/Paper-ArXiv-red" alt="technical report"></a>
+    <a href="https://arxiv.org/abs/2608.17492"><img src="https://img.shields.io/badge/Paper-ArXiv-red" alt="technical report"></a>
     <a href="https://fireredteam.github.io/demos/firered_tts_3/"><img src="https://img.shields.io/badge/Demo-Page-lightgrey" alt="version"></a>
     <a href="https://huggingface.co/FireRedTeam/FireRedTTS3"><img src="https://img.shields.io/badge/Hugging%20Face-Model%20Page-yellow" alt="HF-model"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="Apache-2.0"></a>
@@ -57,7 +57,7 @@
 
 - [x] Release the FireRedTTS3-Base model
 - [x] Release the FireRedTTS3-Instruct model
-- [ ] Release the technical report
+- [x] Release the technical report
 
 
 ## Contents
