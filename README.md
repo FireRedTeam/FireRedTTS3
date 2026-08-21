@@ -516,8 +516,8 @@ Since Gemini-2.5-pro-preview is inaccessible, Gemini-2.5-pro is used to score al
 ```bib
 @article{fireredtts3,
   title   = {FireRedTTS3: Unified Speech Generation and Editing with Semantically Enriched Speech Representations},
-  author  = {FireRed Team},
-  journal = {arXiv preprint},
+  author  = {Shen, Feiyu and Xie, Kun and Wu, Yichen and Dai, Ziqi and Han, Yichen and Li, Junjie and Geng, Xuelong and Xie, Fenglong and Xie, Lei and Tang, Xu and others},
+  journal = {arXiv preprint arXiv:2608.17492},
   year    = {2026},
 }
 ```
