@@ -87,6 +87,12 @@ pip install "huggingface_hub[cli]"
 hf download FireRedTeam/FireRedTTS3 --local-dir pretrained_models/
 ```
 
+Alternatively, you can download model from ModelScope
+```sh
+pip install modelscope
+modelscope download --model FireRedTeam/FireRedTTS3 --local_dir pretrained_models/
+```
+
 ### Configure Text Frontend
 
 #### Language Recognition (Optional)
