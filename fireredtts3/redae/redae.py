@@ -3,6 +3,7 @@ import torch
 import torchaudio
 import torch.nn as nn
 import torch.nn.functional as F
+from fireredtts3.utils.device import get_attn_implementation, autocast, fft_device
 from transformers import (
     Qwen3Config, Qwen3Model, 
     PretrainedConfig, PreTrainedModel
@@ -34,7 +35,7 @@ class Qwen3ClsDownsample(torch.nn.Module):
             max_position_embeddings=max_position_embeddings,
             num_attention_heads=num_attention_heads,
             num_key_value_heads=num_key_value_heads,
-            attn_implementation='flash_attention_2',
+            attn_implementation=get_attn_implementation(),
         )
         self.qwen3 = Qwen3Model(self.qwen3_config)
         self.cls_tok = torch.nn.Parameter(torch.ones(1, 1, hidden_size))
@@ -119,7 +120,7 @@ class RedAEAudioEncoder(torch.nn.Module):
             num_key_value_heads=num_key_value_heads,
             sliding_window=sliding_window,
             use_sliding_window=use_sliding_window,
-            attn_implementation='flash_attention_2',
+            attn_implementation=get_attn_implementation(),
         )
         self.qwen3 = Qwen3Model(self.qwen3_config)
         if self.extra_downsample_rate > 1:
@@ -197,9 +198,16 @@ class ISTFT(nn.Module):
         self.register_buffer("window", window)
 
     def forward(self, spec: torch.Tensor) -> torch.Tensor:
+        # Inverse FFT / complex math is unavailable on some backends (e.g. MPS on
+        # older torch); compute on an FFT-capable device and move the result back.
+        out_device = spec.device
+        spec = fft_device(spec)
+        window = self.window.to(spec.device)
+
         if self.padding == "center":
             # Fallback to pytorch native implementation
-            return torch.istft(spec, self.n_fft, self.hop_length, self.win_length, self.window, center=True)
+            audio = torch.istft(spec, self.n_fft, self.hop_length, self.win_length, window, center=True)
+            return audio.to(out_device)
         elif self.padding == "same":
             pad = (self.win_length - self.hop_length) // 2
         else:
@@ -210,7 +218,7 @@ class ISTFT(nn.Module):
 
         # Inverse FFT
         ifft = torch.fft.irfft(spec, self.n_fft, dim=1, norm="backward")
-        ifft = ifft * self.window[None, :, None]
+        ifft = ifft * window[None, :, None]
 
         # Overlap and Add
         output_size = (T - 1) * self.hop_length + self.win_length
@@ -219,7 +227,7 @@ class ISTFT(nn.Module):
         )[:, 0, 0, pad:-pad]
 
         # Window envelope
-        window_sq = self.window.square().expand(1, T, -1).transpose(1, 2)
+        window_sq = window.square().expand(1, T, -1).transpose(1, 2)
         window_envelope = torch.nn.functional.fold(
             window_sq, output_size=(1, output_size), kernel_size=(1, self.win_length), stride=(1, self.hop_length),
         ).squeeze()[pad:-pad]
@@ -228,7 +236,7 @@ class ISTFT(nn.Module):
         assert (window_envelope > 1e-11).all()
         y = y / window_envelope
 
-        return y
+        return y.to(out_device)
 
 
 class ISTFTHead(nn.Module):
@@ -246,7 +254,8 @@ class ISTFTHead(nn.Module):
         self.istft = ISTFT(n_fft=n_fft, hop_length=hop_length, win_length=n_fft, padding=padding)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x_pred = self.out(x)
+        # complex half is not usable -> run the spectrum/ISTFT in fp32
+        x_pred = self.out(x).float()
         x_pred = x_pred.transpose(1, 2)
         mag, p = x_pred.chunk(2, dim=1)
         mag = torch.exp(mag)
@@ -467,7 +476,7 @@ class RedAE(PreTrainedModel):
             audio = F.pad(audio, (pad_len, 0))  # NOTE left pad
         return audio
 
-    @torch.autocast(device_type='cuda', dtype=torch.bfloat16)
+    @autocast
     @torch.no_grad()
     def encode(self, audio: torch.Tensor, audio_sr:int):
         """
@@ -480,6 +489,7 @@ class RedAE(PreTrainedModel):
         audio = audio[:1]
         audio = torchaudio.functional.resample(audio, audio_sr, self.sample_rate)
         audio = self.pad_to_multiple_of(audio, self.downsample_rate)
+        audio = audio.to(self.dtype)
         latents = self.encoder.forward(audio)
         return latents
     
