@@ -11,7 +11,9 @@ from fireredtts3.llm.dit import DiT
 from fireredtts3.redae.redae import RedAE
 from fireredtts3.campp.campp import CamppEmbedding
 from fireredtts3.utils.utils import fix_seed
-from fireredtts3.utils.device import get_device, get_attn_implementation, get_weight_dtype, autocast
+from fireredtts3.utils.device import (
+    get_device, get_attn_implementation, get_weight_dtype, quantize_weights, autocast,
+)
 from fireredtts3.utils.text_tokenizer import (
     load_text_tokenizer, 
     MULTI_LANG_TAGS, MULTI_DIALECT_TAGS,
@@ -277,6 +279,8 @@ class FireRedTTS3Base(object):
         assert os.path.exists(tts_model_dir), f'{tts_model_dir} not found'
         self.tts_core = FireRedTTS3BaseCore.from_pretrained(tts_model_dir, dtype=get_weight_dtype())
         self.tts_core.to(self.device)
+        # Optional int8 weight-only quantization (FIRERED_QUANT=int8)
+        quantize_weights(self.tts_core.backbone_llm, self.redae)
         # Text Tokenizer
         text_tok_dir = os.path.join(pretrained_model_dir, 'text_tokenizer')
         assert os.path.exists(text_tok_dir), f'{text_tok_dir} not found'

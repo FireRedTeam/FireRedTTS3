@@ -13,6 +13,8 @@ Environment overrides:
   casts activations, so this is the knob that actually halves resident memory.
   Unset means "whatever the checkpoint stores", which is what transformers does
   on its own — fp32 for the official weights.
+- ``FIRERED_QUANT`` — ``int8`` applies weight-only quantization to the transformer
+  backbones (requires ``optimum-quanto``). Default: ``none``.
 """
 
 import os
@@ -63,6 +65,20 @@ def _resolve_weight_dtype():
     return _DTYPES[override]
 
 
+def _resolve_quant() -> str:
+    quant = os.environ.get("FIRERED_QUANT", "").strip().lower() or "none"
+    if quant in ("int4", "qint4"):
+        raise ValueError(
+            "FIRERED_QUANT=int4 is not supported: measured 3x slower than bf16 on MPS "
+            "(RTF 3.39 vs 1.47) with a clear speaker-similarity drop (0.828 vs 0.913), and "
+            "quanto's int4 path conflicts with the @torch.inference_mode() decorators. "
+            "Use FIRERED_QUANT=int8."
+        )
+    if quant not in ("none", "int8"):
+        raise ValueError(f"invalid FIRERED_QUANT={quant!r}, expected 'none' or 'int8'")
+    return quant
+
+
 def _probe_fft(device_type: str) -> bool:
     """Whether complex tensors + inverse FFT work on this device (MPS: no)."""
     if device_type == "cpu":
@@ -80,6 +96,7 @@ DEVICE_TYPE: str = DEVICE.type
 AUTOCAST_DTYPE: torch.dtype = _resolve_autocast_dtype(DEVICE_TYPE)
 AUTOCAST_ENABLED: bool = AUTOCAST_DTYPE != torch.float32
 WEIGHT_DTYPE = _resolve_weight_dtype()   # None => as stored in the checkpoint
+QUANT: str = _resolve_quant()
 # MPS has no FFT / complex kernels -> ISTFT and kaldi fbank must run on CPU.
 FFT_ON_DEVICE: bool = _probe_fft(DEVICE_TYPE)
 
@@ -91,6 +108,30 @@ def get_device() -> torch.device:
 def get_weight_dtype():
     """dtype to load checkpoints in; None means keep whatever they store."""
     return WEIGHT_DTYPE
+
+
+def get_quant() -> str:
+    return QUANT
+
+
+def quantize_weights(*modules) -> None:
+    """Apply int8 weight-only quantization in place; no-op unless FIRERED_QUANT=int8.
+
+    Pass only the transformer backbones. The DiT flow head is deliberately left
+    alone: it runs once per flow timestep with a CFG-doubled batch, so per-call
+    dequantization dominates (measured RTF 2.41 vs 1.16 when it is included).
+    """
+    if QUANT == "none":
+        return
+    try:
+        from optimum.quanto import quantize, freeze, qint8
+    except ImportError as exc:  # optional dependency
+        raise ImportError(
+            "FIRERED_QUANT=int8 requires optimum-quanto: pip install optimum-quanto"
+        ) from exc
+    for module in modules:
+        quantize(module, weights=qint8)
+        freeze(module)
 
 
 def get_attn_implementation() -> str:
@@ -121,7 +162,7 @@ def fft_device(tensor: torch.Tensor) -> torch.Tensor:
 
 def describe() -> str:
     return (
-        f"device={DEVICE}, weights={WEIGHT_DTYPE or 'as-stored'}, "
+        f"device={DEVICE}, weights={WEIGHT_DTYPE or 'as-stored'}, quant={QUANT}, "
         f"autocast={'off' if not AUTOCAST_ENABLED else AUTOCAST_DTYPE}, "
         f"attn={get_attn_implementation()}, fft_on_device={FFT_ON_DEVICE}"
     )

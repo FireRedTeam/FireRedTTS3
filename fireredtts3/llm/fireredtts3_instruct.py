@@ -17,7 +17,7 @@ from fireredtts3.llm.patch_encoder import PatchEncoder, RotaryEmbedding
 from fireredtts3.llm.dit import DiT
 from fireredtts3.redae.redae import RedAE
 from fireredtts3.utils.utils import fix_seed
-from fireredtts3.utils.device import get_device, get_weight_dtype, autocast
+from fireredtts3.utils.device import get_device, get_weight_dtype, quantize_weights, autocast
 from fireredtts3.utils.text_tokenizer import load_text_tokenizer
 from fireredtts3.llm.fireredtts3_base import Qwen3_1_7B_ConfigDict
 from fireredtts3.utils.chatml import (
@@ -329,6 +329,8 @@ class FireRedTTS3Instruct(object):
         assert os.path.exists(tts_model_dir), f'{tts_model_dir} not found'
         self.tts_core = FireRedTTS3InstructCore.from_pretrained(tts_model_dir, dtype=get_weight_dtype())
         self.tts_core.to(self.device)
+        # Optional int8 weight-only quantization (FIRERED_QUANT=int8)
+        quantize_weights(self.tts_core.backbone_llm, self.redae)
         # Text Tokenizer
         text_tok_dir = os.path.join(pretrained_model_dir, 'text_tokenizer')
         assert os.path.exists(text_tok_dir), f'{text_tok_dir} not found'
