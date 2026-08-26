@@ -98,6 +98,7 @@ The device and compute dtype are resolved once in `fireredtts3/utils/device.py`
 | `FIRERED_DEVICE` | `cuda` / `mps` / `cpu` | first available |
 | `FIRERED_DTYPE` | autocast dtype (activations) | `bfloat16` on CUDA, `float32` elsewhere |
 | `FIRERED_WEIGHT_DTYPE` | dtype the checkpoints are loaded in | as stored (fp32 officially) |
+| `FIRERED_QUANT` | `int8` weight-only quantization | `none` |
 
 `FIRERED_DTYPE` only casts activations, so it does **not** shrink resident
 memory; `FIRERED_WEIGHT_DTYPE` is the knob that does. Measured on an M4 Max
@@ -146,6 +147,36 @@ checkpoint stores, so nothing changes unless you ask for it.
 Autocast, by contrast, buys nothing on MPS (RTF 0.88-0.93 vs 0.85-0.91 over
 fp32 weights) — the DiT flow head, the real bottleneck, sits outside the
 autocast region — so autocast is off by default off CUDA.
+
+#### int8 quantization
+
+`FIRERED_QUANT=int8` applies weight-only int8 quantization to the transformer
+backbones. It needs `optimum-quanto`, imported lazily — the default
+`FIRERED_QUANT=none` requires nothing installed and does not touch the model:
+
+```sh
+pip install optimum-quanto
+FIRERED_QUANT=int8 FIRERED_WEIGHT_DTYPE=bfloat16 python your_script.py
+```
+
+Same benchmark as above:
+
+| Weights | Resident weights | RTF | Speaker sim |
+| --- | --- | --- | --- |
+| `float32`, no quant (default) | 11.42 GiB | 0.87-0.96 | 0.947 / 0.935 |
+| `bfloat16`, no quant | 5.71 GiB | 0.73-0.76 | 0.941 / 0.933 |
+| `bfloat16` + `int8` | **3.90 GiB** | 1.03-1.05 | 0.937 / 0.934 |
+
+Reach for int8 when memory is the binding constraint — 2.9x smaller than the
+default at ~40% higher latency than plain bf16. If you have the RAM, bf16
+without quantization is both faster and smaller than the fp32 default.
+
+The DiT flow head is deliberately left unquantized: it runs once per flow
+timestep with a CFG-doubled batch, so per-call dequantization dominates —
+quantizing every `nn.Linear` measured RTF 2.41 for only 8% more savings. `int4`
+is rejected with an explanatory error (measured 3x slower with a clear
+similarity drop, and quanto's int4 path conflicts with the
+`@torch.inference_mode()` decorators).
 
 ### Model Download
 

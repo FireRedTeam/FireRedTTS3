@@ -12,3 +12,4 @@ wetext
 fasttext
 faster-whisper
 soundfile        # torchaudio I/O backend on macOS (torchcodec needs ffmpeg<=7)
+optimum-quanto   # optional, only for FIRERED_QUANT=int8
