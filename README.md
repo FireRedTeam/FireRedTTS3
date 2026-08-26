@@ -79,6 +79,42 @@
 pip install -r requirements.txt
 ```
 
+### Installation on Apple Silicon (MPS)
+
+`flash_attn` has no macOS wheel, and `torchcodec` needs FFmpeg <= 7, so use the
+macOS requirement set instead (attention falls back to PyTorch SDPA, audio I/O
+to `soundfile`):
+
+```sh
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -r requirements-mps.txt
+```
+
+The device and compute dtype are resolved once in `fireredtts3/utils/device.py`
+(CUDA -> MPS -> CPU) and can be overridden:
+
+| Variable | Values | Default |
+| --- | --- | --- |
+| `FIRERED_DEVICE` | `cuda` / `mps` / `cpu` | first available |
+| `FIRERED_DTYPE` | autocast dtype (activations) | `bfloat16` on CUDA, `float32` elsewhere |
+| `FIRERED_WEIGHT_DTYPE` | dtype the checkpoints are loaded in | `float32` |
+
+`FIRERED_DTYPE` only casts activations, so it does **not** shrink resident
+memory; `FIRERED_WEIGHT_DTYPE` is the knob that does. Measured on an M4 Max
+(torch 2.8, macOS 26), Base zero-shot cloning of one short sentence:
+
+| Weights | Resident weights | Peak MPS | RTF | Speaker sim |
+| --- | --- | --- | --- | --- |
+| `float32` (default) | 11.44 GiB | 13.87 GiB | 1.15 | 0.895 |
+| `bfloat16` | 5.73 GiB | 6.92 GiB | 1.47 | 0.913 |
+| `float16` | 5.73 GiB | 6.92 GiB | 1.85 | 0.896 |
+
+Half weights halve memory at equal quality but are *slower* on MPS, and
+autocast bf16 over fp32 weights buys nothing (RTF 0.88-0.93 vs 0.85-0.91) —
+the DiT flow head, the real bottleneck, sits outside the autocast region. Hence
+fp32 weights + no autocast is the default off CUDA. On longer multi-sentence
+input the same fp32 path reaches RTF 0.85-0.91, i.e. faster than real time.
+
 ### Model Download
 
 Download the pretrained model from Hugging Face with the `hf` CLI:
