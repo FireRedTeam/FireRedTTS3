@@ -79,6 +79,74 @@
 pip install -r requirements.txt
 ```
 
+### Installation on Apple Silicon (MPS)
+
+`flash_attn` has no macOS wheel, and `torchcodec` needs FFmpeg <= 7, so use the
+macOS requirement set instead (attention falls back to PyTorch SDPA, audio I/O
+to `soundfile`):
+
+```sh
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -r requirements-mps.txt
+```
+
+The device and compute dtype are resolved once in `fireredtts3/utils/device.py`
+(CUDA -> MPS -> CPU) and can be overridden:
+
+| Variable | Values | Default |
+| --- | --- | --- |
+| `FIRERED_DEVICE` | `cuda` / `mps` / `cpu` | first available |
+| `FIRERED_DTYPE` | autocast dtype (activations) | `bfloat16` on CUDA, `float32` elsewhere |
+| `FIRERED_WEIGHT_DTYPE` | dtype the checkpoints are loaded in | as stored (fp32 officially) |
+
+`FIRERED_DTYPE` only casts activations, so it does **not** shrink resident
+memory; `FIRERED_WEIGHT_DTYPE` is the knob that does. Measured on an M4 Max
+(torch 2.8, macOS 26), Base zero-shot cloning of a 3-sentence paragraph over
+two reference voices, RTF as the range across 3 interleaved runs:
+
+| Weights | Resident weights | RTF | Speaker sim |
+| --- | --- | --- | --- |
+| `float32` (official checkpoints) | 11.42 GiB | 0.87-0.96 | 0.947 / 0.935 |
+| `bfloat16` | 5.71 GiB | **0.73-0.76** | 0.941 / 0.933 |
+
+**On MPS, bfloat16 weights are what you want:** half the memory *and* ~20%
+faster, at effectively unchanged speaker similarity. There are two ways to get
+them, and they are equivalent at inference time:
+
+**a) Cast on the fly** — keep the official fp32 checkpoints on disk and convert
+them while loading:
+
+```sh
+FIRERED_WEIGHT_DTYPE=bfloat16 python your_script.py
+```
+
+Nothing on disk changes (19 GB stays 19 GB), and you can go back to fp32 by
+dropping the variable. The cast is redone on every start.
+
+**b) Convert the checkpoints once** — halve them on disk too, then feed those
+weights with no variable set at all:
+
+```sh
+python scripts/convert_to_bf16.py          # in place: 19 GB -> 9.7 GB
+python your_script.py                      # loads bfloat16 by itself
+```
+
+Each tensor of the new file is verified against the fp32 original for exact
+bfloat16 rounding before the original is replaced, and the script skips
+components that are already converted. Loading gets faster too (3.3 s vs
+5.7-9.2 s here), since half as much is read from disk. Pass `--keep-fp32` to
+write `<dir>.bf16` alongside instead of replacing, and note the cast is one-way
+— recovering fp32 means re-downloading.
+
+Option (b) is also the way to move a converted model to another machine: copy
+`pretrained_models/` over, or run the script there after downloading. Either
+way, leaving `FIRERED_WEIGHT_DTYPE` unset means the loader keeps whatever the
+checkpoint stores, so nothing changes unless you ask for it.
+
+Autocast, by contrast, buys nothing on MPS (RTF 0.88-0.93 vs 0.85-0.91 over
+fp32 weights) — the DiT flow head, the real bottleneck, sits outside the
+autocast region — so autocast is off by default off CUDA.
+
 ### Model Download
 
 Download the pretrained model from Hugging Face with the `hf` CLI:
