@@ -11,7 +11,8 @@ Environment overrides:
   (``float32`` disables autocast). Default: bfloat16 on CUDA, float32 elsewhere.
 - ``FIRERED_WEIGHT_DTYPE`` — dtype the checkpoints are *loaded* in. Autocast only
   casts activations, so this is the knob that actually halves resident memory.
-  Default: ``float32`` (the checkpoint dtype).
+  Unset means "whatever the checkpoint stores", which is what transformers does
+  on its own — fp32 for the official weights.
 """
 
 import os
@@ -52,10 +53,11 @@ def _resolve_autocast_dtype(device_type: str) -> torch.dtype:
     return torch.bfloat16 if device_type == "cuda" else torch.float32
 
 
-def _resolve_weight_dtype() -> torch.dtype:
+def _resolve_weight_dtype():
+    """Returns None when unset, so from_pretrained keeps the checkpoint's dtype."""
     override = os.environ.get("FIRERED_WEIGHT_DTYPE", "").strip().lower()
     if not override:
-        return torch.float32
+        return None
     if override not in _DTYPES:
         raise ValueError(f"invalid FIRERED_WEIGHT_DTYPE={override!r}, expected one of {sorted(_DTYPES)}")
     return _DTYPES[override]
@@ -77,7 +79,7 @@ DEVICE: torch.device = _resolve_device()
 DEVICE_TYPE: str = DEVICE.type
 AUTOCAST_DTYPE: torch.dtype = _resolve_autocast_dtype(DEVICE_TYPE)
 AUTOCAST_ENABLED: bool = AUTOCAST_DTYPE != torch.float32
-WEIGHT_DTYPE: torch.dtype = _resolve_weight_dtype()
+WEIGHT_DTYPE = _resolve_weight_dtype()   # None => as stored in the checkpoint
 # MPS has no FFT / complex kernels -> ISTFT and kaldi fbank must run on CPU.
 FFT_ON_DEVICE: bool = _probe_fft(DEVICE_TYPE)
 
@@ -86,7 +88,8 @@ def get_device() -> torch.device:
     return DEVICE
 
 
-def get_weight_dtype() -> torch.dtype:
+def get_weight_dtype():
+    """dtype to load checkpoints in; None means keep whatever they store."""
     return WEIGHT_DTYPE
 
 
@@ -118,7 +121,7 @@ def fft_device(tensor: torch.Tensor) -> torch.Tensor:
 
 def describe() -> str:
     return (
-        f"device={DEVICE}, weights={WEIGHT_DTYPE}, "
+        f"device={DEVICE}, weights={WEIGHT_DTYPE or 'as-stored'}, "
         f"autocast={'off' if not AUTOCAST_ENABLED else AUTOCAST_DTYPE}, "
         f"attn={get_attn_implementation()}, fft_on_device={FFT_ON_DEVICE}"
     )

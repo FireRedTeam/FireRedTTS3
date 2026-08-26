@@ -97,7 +97,7 @@ The device and compute dtype are resolved once in `fireredtts3/utils/device.py`
 | --- | --- | --- |
 | `FIRERED_DEVICE` | `cuda` / `mps` / `cpu` | first available |
 | `FIRERED_DTYPE` | autocast dtype (activations) | `bfloat16` on CUDA, `float32` elsewhere |
-| `FIRERED_WEIGHT_DTYPE` | dtype the checkpoints are loaded in | `float32` |
+| `FIRERED_WEIGHT_DTYPE` | dtype the checkpoints are loaded in | as stored (fp32 officially) |
 
 `FIRERED_DTYPE` only casts activations, so it does **not** shrink resident
 memory; `FIRERED_WEIGHT_DTYPE` is the knob that does. Measured on an M4 Max
@@ -106,13 +106,13 @@ two reference voices, RTF as the range across 3 interleaved runs:
 
 | Weights | Resident weights | RTF | Speaker sim |
 | --- | --- | --- | --- |
-| `float32` (default) | 11.42 GiB | 0.87-0.96 | 0.947 / 0.935 |
+| `float32` (official checkpoints) | 11.42 GiB | 0.87-0.96 | 0.947 / 0.935 |
 | `bfloat16` | 5.71 GiB | **0.73-0.76** | 0.941 / 0.933 |
 
 **On MPS, `FIRERED_WEIGHT_DTYPE=bfloat16` is the setting to want:** half the
-memory *and* ~20% faster, at effectively unchanged speaker similarity. The
-default stays `float32` only because it matches the checkpoints and leaves CUDA
-untouched.
+memory *and* ~20% faster, at effectively unchanged speaker similarity. Left
+unset, the loader keeps whatever the checkpoint stores — fp32 for the official
+weights — so nothing changes unless you ask for it.
 
 Autocast, by contrast, buys nothing on MPS (RTF 0.88-0.93 vs 0.85-0.91 over
 fp32 weights) — the DiT flow head, the real bottleneck, sits outside the
