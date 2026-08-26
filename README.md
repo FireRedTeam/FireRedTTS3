@@ -159,6 +159,10 @@ pip install optimum-quanto
 FIRERED_QUANT=int8 FIRERED_WEIGHT_DTYPE=bfloat16 python your_script.py
 ```
 
+int8 stacks on top of whatever the weights already are, so on a checkpoint
+already converted by `scripts/convert_to_bf16.py` the dtype variable is
+redundant — `FIRERED_QUANT=int8` alone gives the same result.
+
 Same benchmark as above:
 
 | Weights | Resident weights | RTF | Speaker sim |
