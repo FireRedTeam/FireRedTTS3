@@ -109,10 +109,39 @@ two reference voices, RTF as the range across 3 interleaved runs:
 | `float32` (official checkpoints) | 11.42 GiB | 0.87-0.96 | 0.947 / 0.935 |
 | `bfloat16` | 5.71 GiB | **0.73-0.76** | 0.941 / 0.933 |
 
-**On MPS, `FIRERED_WEIGHT_DTYPE=bfloat16` is the setting to want:** half the
-memory *and* ~20% faster, at effectively unchanged speaker similarity. Left
-unset, the loader keeps whatever the checkpoint stores — fp32 for the official
-weights — so nothing changes unless you ask for it.
+**On MPS, bfloat16 weights are what you want:** half the memory *and* ~20%
+faster, at effectively unchanged speaker similarity. There are two ways to get
+them, and they are equivalent at inference time:
+
+**a) Cast on the fly** — keep the official fp32 checkpoints on disk and convert
+them while loading:
+
+```sh
+FIRERED_WEIGHT_DTYPE=bfloat16 python your_script.py
+```
+
+Nothing on disk changes (19 GB stays 19 GB), and you can go back to fp32 by
+dropping the variable. The cast is redone on every start.
+
+**b) Convert the checkpoints once** — halve them on disk too, then feed those
+weights with no variable set at all:
+
+```sh
+python scripts/convert_to_bf16.py          # in place: 19 GB -> 9.7 GB
+python your_script.py                      # loads bfloat16 by itself
+```
+
+Each tensor of the new file is verified against the fp32 original for exact
+bfloat16 rounding before the original is replaced, and the script skips
+components that are already converted. Loading gets faster too (3.3 s vs
+5.7-9.2 s here), since half as much is read from disk. Pass `--keep-fp32` to
+write `<dir>.bf16` alongside instead of replacing, and note the cast is one-way
+— recovering fp32 means re-downloading.
+
+Option (b) is also the way to move a converted model to another machine: copy
+`pretrained_models/` over, or run the script there after downloading. Either
+way, leaving `FIRERED_WEIGHT_DTYPE` unset means the loader keeps whatever the
+checkpoint stores, so nothing changes unless you ask for it.
 
 Autocast, by contrast, buys nothing on MPS (RTF 0.88-0.93 vs 0.85-0.91 over
 fp32 weights) — the DiT flow head, the real bottleneck, sits outside the
