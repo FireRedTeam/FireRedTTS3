@@ -1,0 +1,15 @@
+# macOS / Apple Silicon (MPS) dependency set.
+# Same as requirements.txt minus flash_attn (CUDA-only wheel); attention falls
+# back to PyTorch SDPA, see fireredtts3/utils/device.py.
+torch==2.8.0
+torchaudio==2.8.0
+torchcodec==0.7.0
+transformers==5.6.2
+einops==0.8.2
+dotenv
+regex
+wetext
+fasttext
+faster-whisper
+soundfile        # torchaudio I/O backend on macOS (torchcodec needs ffmpeg<=7)
+optimum-quanto   # optional, only for FIRERED_QUANT=int8

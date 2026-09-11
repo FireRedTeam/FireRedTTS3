@@ -1,8 +1,8 @@
 import torch
 from torch.nn import Module
-from torch.amp import autocast
 from torch import cat, stack, arange
 from einops import rearrange
+from fireredtts3.utils.device import disable_autocast
 
 
 class RotaryEmbedding(Module):
@@ -38,7 +38,7 @@ class RotaryEmbedding(Module):
         t = arange(seq_len, device = device)
         return self.forward(t)
 
-    @autocast('cuda', enabled = False)
+    @disable_autocast
     def forward(self, t, offset = 0):
         if t.ndim == 1:
             t = rearrange(t, 'n -> 1 n')
@@ -57,7 +57,7 @@ def rotate_half(x):
     return rearrange(x, '... d r -> ... (d r)')
 
 
-@autocast('cuda', enabled = False)
+@disable_autocast
 def apply_rotary_pos_emb(t, freqs, scale = 1):
     rot_dim, seq_len, orig_dtype = freqs.shape[-1], t.shape[-2], t.dtype
 
