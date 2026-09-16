@@ -381,7 +381,7 @@ class FireRedTTS3Instruct(TextFrontendMixin, FireRedTTS3InstructBackend):
         gen_audio_sr = None
         segments: List[torch.Tensor] = []
         for sent in sentences:
-            seg, seg_sr, _ = super().generate_tts(
+            seg, seg_sr = super().generate_tts(
                 prompt_text=prompt_text,
                 prompt_audio=prompt_audio,
                 prompt_audio_sr=prompt_audio_sr,
