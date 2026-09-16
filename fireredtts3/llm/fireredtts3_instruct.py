@@ -17,6 +17,7 @@ from fireredtts3.llm.patch_encoder import PatchEncoder, RotaryEmbedding
 from fireredtts3.llm.dit import DiT
 from fireredtts3.redae.redae import RedAE
 from fireredtts3.utils.utils import fix_seed
+from fireredtts3.utils.device import get_device, get_weight_dtype, autocast
 from fireredtts3.utils.text_tokenizer import load_text_tokenizer
 from fireredtts3.llm.fireredtts3_base import Qwen3_1_7B_ConfigDict
 from fireredtts3.utils.chatml import (
@@ -139,7 +140,7 @@ class FireRedTTS3InstructCore(PreTrainedModel):
             module.rope_init()
     
     # Backbone Transformer AR wrapper
-    @torch.autocast(device_type='cuda', dtype=torch.bfloat16)
+    @autocast
     def _backbone_one_step(self, input_embeds: torch.Tensor, cache = None):
         outs = self.backbone_llm.model.forward(
             inputs_embeds=input_embeds,
@@ -160,7 +161,8 @@ class FireRedTTS3InstructCore(PreTrainedModel):
         inference_cfg: float,
     ):
         # Compose input
-        x0 = torch.randn(1, self.patch_size, self.redae_dim, device=hist_latents.device)
+        x0 = torch.randn(1, self.patch_size, self.redae_dim,
+                         device=hist_latents.device, dtype=hist_latents.dtype)
         
         xt = torch.cat([hist_latents, x0], dim=1)   # History clean + current noise
         cond = backbone_cond.repeat_interleave(self.patch_size, dim=1)    # Correspond backbone cond
@@ -228,11 +230,11 @@ class FireRedTTS3InstructCore(PreTrainedModel):
                 latents_patch_out.reshape(-1).to(input_embeds),
             )
         else:
-            latents_out = torch.zeros(1, 0, self.config.redae_dim, device=device)
+            latents_out = torch.zeros(1, 0, self.config.redae_dim, device=device, dtype=input_embeds.dtype)
             latents_patch_out = None
         
         # Prepare DiT decode
-        t_span = torch.linspace(0, 1, n_timesteps + 1).to(device)
+        t_span = torch.linspace(0, 1, n_timesteps + 1).to(device=device, dtype=input_embeds.dtype)
         t_span = 1 - torch.cos(t_span * 0.5 * torch.pi) # (n_timesteps+1,)
 
         # Init Backbone states
@@ -316,16 +318,16 @@ class FireRedTTS3InstructCore(PreTrainedModel):
 # RedAE + TextTokenizer + TTS3Core
 class FireRedTTS3Instruct(object):
     def __init__(self, pretrained_model_dir: str):
-        self.device = torch.device('cuda')
+        self.device = get_device()
         # RedAE
         redae_model_dir = os.path.join(pretrained_model_dir, 'redae')
         assert os.path.exists(redae_model_dir), f'{redae_model_dir} not found'
-        self.redae = RedAE.from_pretrained(redae_model_dir)
+        self.redae = RedAE.from_pretrained(redae_model_dir, dtype=get_weight_dtype())
         self.redae.to(self.device)
         # LLM-DiT 
         tts_model_dir = os.path.join(pretrained_model_dir, 'fireredtts3_instruct')
         assert os.path.exists(tts_model_dir), f'{tts_model_dir} not found'
-        self.tts_core = FireRedTTS3InstructCore.from_pretrained(tts_model_dir)
+        self.tts_core = FireRedTTS3InstructCore.from_pretrained(tts_model_dir, dtype=get_weight_dtype())
         self.tts_core.to(self.device)
         # Text Tokenizer
         text_tok_dir = os.path.join(pretrained_model_dir, 'text_tokenizer')
@@ -347,7 +349,7 @@ class FireRedTTS3Instruct(object):
         audio = self.redae.pad_to_multiple_of(audio, self.redae.downsample_rate*self.tts_core.patch_size)
         audio = audio.to(self.device)
         latents = self.redae.encode(audio, audio_sr) * REDAE_SCALE
-        latents = latents.to(torch.float32)
+        latents = latents.to(self.tts_core.dtype)
         return latents
 
     # --- Inference Interface

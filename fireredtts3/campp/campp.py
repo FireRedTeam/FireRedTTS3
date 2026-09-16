@@ -2,10 +2,13 @@ import torch
 import torchaudio
 import torchaudio.compliance.kaldi as kaldi
 from fireredtts3.campp.DTDNN import CAMPPlus
+from fireredtts3.utils.device import fft_device
 
 
 def extract_kaldi_mel(audio: torch.Tensor, audio_sr: int):
     audio = audio[:1]
+    # kaldi.fbank runs an FFT internally; fall back to CPU on devices without it
+    audio = fft_device(audio)
     if audio_sr != 16000:
         audio = torchaudio.functional.resample(audio, audio_sr, 16000)
         audio_sr = 16000

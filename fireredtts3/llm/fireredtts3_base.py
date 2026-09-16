@@ -11,6 +11,7 @@ from fireredtts3.llm.dit import DiT
 from fireredtts3.redae.redae import RedAE
 from fireredtts3.campp.campp import CamppEmbedding
 from fireredtts3.utils.utils import fix_seed
+from fireredtts3.utils.device import get_device, get_attn_implementation, get_weight_dtype, autocast
 from fireredtts3.utils.text_tokenizer import (
     load_text_tokenizer, 
     MULTI_LANG_TAGS, MULTI_DIALECT_TAGS,
@@ -46,7 +47,7 @@ Qwen3_1_7B_ConfigDict = {
     "use_cache": True,
     "use_sliding_window": False,
     "vocab_size": 151936,
-    "attn_implementation": "flash_attention_2",
+    "attn_implementation": get_attn_implementation(),
 }
 
 
@@ -140,7 +141,7 @@ class FireRedTTS3BaseCore(PreTrainedModel):
             module.rope_init()
     
     # Backbone Transformer AR wrapper
-    @torch.autocast(device_type='cuda', dtype=torch.bfloat16)
+    @autocast
     def _backbone_one_step(self, input_embeds: torch.Tensor, cache = None):
         outs = self.backbone_llm.forward(
             inputs_embeds=input_embeds,
@@ -162,7 +163,8 @@ class FireRedTTS3BaseCore(PreTrainedModel):
         inference_cfg: float,
     ):
         # Compose input
-        x0 = torch.randn(1, self.patch_size, self.redae_dim, device=hist_latents.device)
+        x0 = torch.randn(1, self.patch_size, self.redae_dim,
+                         device=hist_latents.device, dtype=hist_latents.dtype)
         
         xt = torch.cat([hist_latents, x0], dim=1)   # History clean + current noise
         cond = torch.cat([
@@ -213,7 +215,7 @@ class FireRedTTS3BaseCore(PreTrainedModel):
         input_embeds = torch.cat([spk_embs_llm.unsqueeze(1), input_embeds, patch_prompt_latents], dim=1)
         
         # Prepare DiT decode
-        t_span = torch.linspace(0, 1, n_timesteps + 1).to(device)
+        t_span = torch.linspace(0, 1, n_timesteps + 1).to(device=device, dtype=input_embeds.dtype)
         t_span = 1 - torch.cos(t_span * 0.5 * torch.pi) # (n_timesteps+1,)
         latents_gen = F.pad(prompt_latents, (0, 0, self.history_length, 0))
         
@@ -264,16 +266,16 @@ class FireRedTTS3BaseCore(PreTrainedModel):
 # RedAE + TextTokenizer + TTS3Core
 class FireRedTTS3Base(object):
     def __init__(self, pretrained_model_dir: str):
-        self.device = torch.device('cuda')
+        self.device = get_device()
         # RedAE
         redae_model_dir = os.path.join(pretrained_model_dir, 'redae')
         assert os.path.exists(redae_model_dir), f'{redae_model_dir} not found'
-        self.redae = RedAE.from_pretrained(redae_model_dir)
+        self.redae = RedAE.from_pretrained(redae_model_dir, dtype=get_weight_dtype())
         self.redae.to(self.device)
         # LLM-DiT 
         tts_model_dir = os.path.join(pretrained_model_dir, 'fireredtts3_base')
         assert os.path.exists(tts_model_dir), f'{tts_model_dir} not found'
-        self.tts_core = FireRedTTS3BaseCore.from_pretrained(tts_model_dir)
+        self.tts_core = FireRedTTS3BaseCore.from_pretrained(tts_model_dir, dtype=get_weight_dtype())
         self.tts_core.to(self.device)
         # Text Tokenizer
         text_tok_dir = os.path.join(pretrained_model_dir, 'text_tokenizer')
@@ -320,10 +322,10 @@ class FireRedTTS3Base(object):
         prompt_audio = self.redae.pad_to_multiple_of(prompt_audio, self.redae.downsample_rate*self.tts_core.patch_size)
         prompt_audio = prompt_audio.to(self.device)
         prompt_latents = self.redae.encode(prompt_audio, prompt_audio_sr)
-        prompt_latents = prompt_latents.to(torch.float32)
+        prompt_latents = prompt_latents.to(self.tts_core.dtype)
         # Spk emb
         spk_emb = self.spk_extractor.forward(prompt_audio, prompt_audio_sr)
-        spk_emb = spk_emb.to(self.device)
+        spk_emb = spk_emb.to(device=self.device, dtype=self.tts_core.dtype)
         # TTS
         if seed is not None:
             fix_seed(seed)
